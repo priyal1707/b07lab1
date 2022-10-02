@@ -1,81 +1,165 @@
 import java.lang.Math;
 import java.util.Arrays;
+import java.io.File;
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.FileWriter;
+import java.io.BufferedWriter;
+import java.io.IOException;
 
-public class Polynomial{
-	/*  
-	It has one field representing the coefficients of the polynomial using an array of 
-	double. A polynomial is assumed to have the form 𝑎0 +𝑎1𝑥^1 +⋯+𝑎𝑛−1𝑥^𝑛−1. 
-	For  example,  the  polynomial  6−2𝑥+5𝑥3  would  be  represented  using  the 
-	array [6, -2, 0, 5] 
-	*/ 
-	double coef[]; 
-	
-	/*It  has  a  no-argument  constructor  that  sets  the  polynomial  to  zero  (i.e.  the 
-			corresponding array would be [0]) */ 
+public class Polynomial {
+	double coef[];
+	int exp[]; 
+
 	public Polynomial() {
-		coef = new double[1];
-		coef[0] = 0;
+		coef = new double[] {0};
+		exp = new int[] {0};
 	}
-	
-	/*It  has  a  constructor  that  takes  an  array  of  double  as  an  argument  and  sets  the 
-  	coefficients accordingly */ 
-	public Polynomial(double [] a) {
-		coef = new double[a.length];
-		for (int i = 0; i < coef.length; i++) {
-			coef[i] = a[i];
-		}
-		
-	}
-	
-	/* It  has  a  method  named  add  that  takes  one  argument  of  type  Polynomial  and 
-	returns the polynomial resulting from adding the calling object and the argument */
 
-	
-	public Polynomial add(Polynomial other) {
-		int length = coef.length < other.coef.length ? other.coef.length : coef.length; 
-		double[] result = new double[length];
-		for (int i = 0; i < length; i++) { 
-			if (i > coef.length - 1){
-			result[i] = other.coef[i] + 0; 
-			} 
-			
-			else if (i > other.coef.length - 1) {
+  public Polynomial(double[] c, int[] e) {
+    coef = Arrays.copyOf(c, c.length);
+    exp = Arrays.copyOf(e, e.length);
+  }
 
-				result[i] = 0 + coef[i]; 
-			}
-			else {
-				result[i] = other.coef[i] + coef[i]; 
-			}
-		}
-		return new Polynomial(result);
-		
-	}
-	
-	/* It  has  a  method  named  evaluate  that  takes  one  argument  of  type  double 
-	representing a value of x and evaluates the polynomial accordingly. For example, 
-	if the polynomial is 6−2𝑥+5𝑥3 and evaluate(-1) is invoked, the result should 
-	be 3. */
-	public double evaluate(double x) {
-		/* coef[0] + coef[1]* x^2 */ 
-		double fin = 0; 
-		for (int i = 0; i < coef.length ; i++) {
-			fin = fin + (coef[i]* Math.pow(x, i)) ;
-		}
-		return fin; 
-	}
-	
-	/* It  has  a  method  named  hasRoot  that  takes  one  argument  of  type  double  and 
-	determines whether this value is a root of the polynomial or not. Note that a root 
-	is a value of x for which the polynomial evaluates to zero. */
-	
-	public boolean hasRoot(double x) {
-		double fin = evaluate(x);  
-		if (fin == 0) {
-			return true; 
-		}
-		else {
-			return false; 
-		}
-	}
-	
+  public Polynomial(File file) {
+    try {
+      FileReader fr = new FileReader(file);
+      BufferedReader br = new BufferedReader(fr);
+      String line = br.readLine();
+      line = line.replaceAll("-", "+-");
+      if (line.charAt(0) == '+') line = line.substring(1); 
+      String[] terms = line.split("\\+");
+      coef = new double[terms.length];
+      exp = new int[terms.length];
+      for (int i = 0; i < terms.length; i++) {
+        String[] parts = terms[i].split("x");
+        coef[i] = Double.parseDouble(parts[0]);
+        if (parts.length == 2)
+          exp[i] = Integer.parseInt(parts[1]);
+        else if (terms[i].indexOf('x') != -1)
+          exp[i] = 1;
+        else
+          exp[i] = 0;
+      }
+      fr.close();
+      br.close();
+    } catch (IOException e) {
+      coef = new double[] {0};
+      exp = new int[] {0};
+    }
+  }
+
+  private void sort() {
+    double c[] = new double[coef.length];
+    int e[] = new int[exp.length];
+    int ee[] = Arrays.copyOf(exp, exp.length);
+    Arrays.sort(ee);
+    for (int i = 0; i < ee.length; i++) {
+      int idx = 0;
+      for (int j = 0; j < exp.length; j++, idx++) {
+        if (ee[i] == exp[j]) {
+          break;
+        }
+      }
+      c[i] = coef[idx];
+      e[i] = exp[idx];
+    }
+    coef = c;
+    exp = e;
+  }
+
+  public Polynomial add(Polynomial other) {
+    int l = exp.length + other.exp.length;
+    double c[] = new double[l];
+    int e[] = new int[l];
+
+    sort();
+    other.sort();
+    int i = 0;
+    int j = 0;
+    int k = 0;
+    while (i < coef.length && j < other.coef.length) {
+      if (exp[i] == other.exp[j]) {
+        c[k] = coef[i] + other.coef[j];
+        e[k] = exp[i];
+        i++;
+        j++;
+      } else if (exp[i] > other.exp[j]) {
+        c[k] = other.coef[j];
+        e[k] = other.exp[j];
+        j++;
+      } else {
+        c[k] = coef[i];
+        e[k] = exp[i];
+        i++;
+      }
+      k++;
+    }
+    while (i < coef.length) {
+      c[k] = coef[i];
+      e[k++] = exp[i++];
+    }
+    while (j < other.coef.length) {
+      c[k] = other.coef[j];
+      e[k++] = other.exp[j++];
+    }
+    c = Arrays.copyOf(c, k);
+    e = Arrays.copyOf(e, k);
+    return new Polynomial(c, e);
+  }
+
+  public Polynomial multiply(Polynomial other) {
+    double c[] = new double[other.coef.length];
+    int e[] = new int[other.exp.length];
+    Polynomial result = new Polynomial();
+    for (int i = 0; i < coef.length; i++) {
+      for (int j = 0; j < other.coef.length; j++) {
+        c[j] = coef[i] * other.coef[j];
+        e[j] = exp[i] + other.exp[j];
+      }
+      result = result.add(new Polynomial(c, e));
+    }
+    return result;
+  }
+
+  void saveToFile(String fileName) {
+    sort();
+    try {
+      File file = new File(fileName);
+      FileWriter fw = new FileWriter(file);
+      BufferedWriter bw = new BufferedWriter(fw);
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < coef.length; i++) {
+        if (coef[i] > 0 && i > 0) {
+          sb.append('+');
+        }
+        sb.append(Integer.toString((int)coef[i]));
+        if (exp[i] > 0) {
+          sb.append("x");
+          if (exp[i] > 1) {
+            sb.append(Integer.toString(exp[i]));
+          }
+        }
+      }
+      bw.write(sb.toString());
+      bw.close();
+      fw.close();
+    } catch (IOException e) {
+    }
+  }
+
+  public double evaluate(double x) {
+    double fin = 0;
+    for (int i = 0; i < coef.length; i++) {
+      fin = fin + (coef[i] * Math.pow(x, exp[i]));
+     
+    }
+    return fin;
+  }
+  
+  
+
+  public boolean hasRoot(double x) {
+    return evaluate(x) == 0;
+  }
 }
